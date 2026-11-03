@@ -1,0 +1,16 @@
+[Unit]
+Description=Personal agent (Discord gateway)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=%h/agent
+ExecStart=%h/agent/.venv/bin/python main.py
+# systemd user services get a minimal PATH; make sure the claude CLI is found
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

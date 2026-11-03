@@ -1,0 +1,6 @@
+[Unit]
+Description=Hourly git snapshot of the Obsidian vault (see vault-snapshot.sh)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash %h/agent/vault-snapshot.sh

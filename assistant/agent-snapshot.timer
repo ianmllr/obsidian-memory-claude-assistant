@@ -1,0 +1,11 @@
+[Unit]
+Description=Snapshot the Obsidian vault every hour
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=120
+# If the computer was off, take the missed snapshot as soon as it's back
+Persistent=true
+
+[Install]
+WantedBy=timers.target
