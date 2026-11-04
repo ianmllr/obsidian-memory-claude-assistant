@@ -16,6 +16,8 @@ There's also a `#quick` channel for throwing things at it. Type "remind me to re
 
 It learns as you talk to it. Things you tell it go into a memory file it reads every time, and if something belongs in a note you already have (like your laptop's specs in a devices note), it shows you the exact change with Approve and Reject buttons. Nothing changes until you click.
 
+It can also start new notes. Ask it to help plan a birthday party and it writes the plan into a new note in the right folder, with tags, a checklist and a link to a related note. It won't overwrite a note that already exists.
+
 Other things it does:
 
 - reads images, so you can send it a screenshot or a photo of a spec sheet
@@ -24,7 +26,7 @@ Other things it does:
 - tells you when the computer itself has a problem, like sync stopping, the disk filling up or a power cut
 - keeps an hourly history of the vault, so any note can be rolled back
 
-The rules about what it may touch are enforced in the code, not only in the prompt. It can't read your `Private/` folder, can't delete text, and only writes where it's allowed to.
+The rules about what it may touch are enforced in the code, not only in the prompt. It can't read your `Private/` folder, can't delete or overwrite anything, and only writes where it's allowed to.
 
 ## How it fits together
 
@@ -34,7 +36,7 @@ flowchart TB
 
     Bot["<b>main.py + brain.py</b><br/>gets your message<br/>adds vault context<br/>posts the reply"]
     Claude["<b>Claude</b><br/>Haiku<br/>Sonnet for hard questions<br/><i>your Pro subscription</i>"]
-    Tools["<b>tools.py</b><br/>search · read · capture<br/>remember · propose_edit<br/><i>vault rules enforced in code</i>"]
+    Tools["<b>tools.py</b><br/>search · read · capture<br/>remember · create_note<br/>propose_edit<br/><i>vault rules enforced in code</i>"]
 
     HB["<b>heartbeat.py</b><br/>health checks<br/>07:00 brief · hourly"]
     Ext["Calendar<br/>Gmail"]
@@ -45,7 +47,7 @@ flowchart TB
     You <==>|"messages · replies<br/>Approve / Reject"| Bot
     Bot <==>|"message + context<br/>⇄ reply"| Claude
     Claude ==>|"tool calls"| Tools
-    Tools ==>|"search · read<br/>append · approved edits"| Vault
+    Tools ==>|"search · read · append<br/>new notes · approved edits"| Vault
     Bot -.->|"reads context:<br/>rules · personality · memory<br/>pinned notes"| Vault
 
     You <-.->|"DMs when<br/>it matters"| HB

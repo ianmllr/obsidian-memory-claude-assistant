@@ -8,7 +8,7 @@ You can skip this chapter if all you want is to run it. Read it before you start
 
 `brain.py` then puts the system prompt together from the vault: `CLAUDE.md`, `Agent/SOUL.md`, `Agent/MEMORY.md`, all pinned notes, today's daily note and today's date. That goes to Claude through the Agent SDK, which runs the Claude Code CLI under your login. Claude Code's built-in tools like Bash and file editing are switched off, so Claude only gets the vault tools listed below. It may use them a few times (10 steps at most) before it answers.
 
-Finally `main.py` posts the answer, plus a line saying exactly what was saved and Approve/Reject buttons for any proposed edit, and writes a line to `logs/usage.jsonl` with the model, tokens, tools and cost.
+Finally `main.py` posts the answer, plus a line saying exactly what was saved or created and Approve/Reject buttons for any proposed edit, and writes a line to `logs/usage.jsonl` with the model, tokens, tools and cost.
 
 ## The tools
 
@@ -17,6 +17,8 @@ Finally `main.py` posts the answer, plus a line saying exactly what was saved an
 `list_tags` returns the tags in use, most common first, so new entries reuse them. `list_tasks` lists open `- [ ]` tasks, optionally filtered by tag.
 
 `capture` appends an entry or a task to today's daily note. It only ever appends, it keeps a `[[link]]` only if that note really exists, cleans up the tags, and rejects due dates that aren't real dates. `remember` appends one fact to `Agent/MEMORY.md` and skips it if it's already there.
+
+`create_note` writes a brand-new note, for when something deserves a page of its own, like a party plan with a checklist. It only works inside a folder that already exists (and not `Agent/`), refuses if the file exists or if another note already has that name (links go by name, so two notes called `Plan` would be ambiguous), and rejects `[[links]]` to notes that don't exist. It adds the frontmatter tags itself, using the area tag the folder's other notes already have. Once the note exists, changing it goes through `propose_edit` like any other note.
 
 `propose_edit` is how the assistant changes one of your existing notes, and it doesn't write anything itself. It checks that the text to replace exists exactly once and hands the proposal to `main.py`, which shows it to you. Only when you click Approve does the change happen, after checking again that the note hasn't changed in the meantime.
 
@@ -43,6 +45,11 @@ sequenceDiagram
         C->>B: remember("...")
         B->>V: append one line to Agent/MEMORY.md
         B->>D: reply + "📝 Saved to Agent/MEMORY.md"
+    else It needs a note of its own (e.g. a party plan)
+        C->>B: create_note(folder/name, content, tags)
+        Note over B: refuses if the note exists<br/>adds frontmatter tags
+        B->>V: writes the new note
+        B->>D: reply + "🆕 Created Home/…"
     else It belongs in an existing note (e.g. Devices.md)
         C->>B: propose_edit(note, old text, new text)
         Note over B: checks the note and the text<br/>nothing is written yet

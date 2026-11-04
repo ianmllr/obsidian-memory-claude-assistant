@@ -62,6 +62,7 @@ These are the things I tested mine with. Each one exercises a different part.
 5. In `#chat`: "what do I have to do?" It should list the reminder from step 3.
 6. In `#chat`: "my laptop has 32 GB RAM". You should get a proposed change to `Devices.md` with Approve and Reject buttons. Approve it and look at the note.
 7. In `#chat`, attach a screenshot and ask what's in it.
+8. In `#chat`: "help me plan a birthday party, make a note for it with a checklist". You should get `🆕 Created Home/…` and a new note with tags and a checklist.
 
 Then restart the bot (`systemctl --user restart agent`) and reply in the first thread again. It should still remember the conversation.
 

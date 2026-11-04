@@ -20,6 +20,7 @@ This vault is my notes. These rules apply to every assistant that works here: th
 ## Writing
 
 - Only write to `Inbox/`, `Agent/` and the daily notes in `Agent/daily/`.
+- New notes may be created in any folder in the table except `Private/` and `Agent/`. Never overwrite an existing note, and give the new note frontmatter tags (see Tags).
 - Append. Never rewrite, reorder or delete existing text.
 - Never edit, move or delete any other note unless I have approved that exact change.
 - Every new entry or note links to at least one existing note with a `[[wikilink]]` when a related note exists. Don't invent links to notes that don't exist.

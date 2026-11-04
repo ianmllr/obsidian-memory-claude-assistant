@@ -36,7 +36,7 @@ If you already have a pile of notes, you can leave them where they are or sort t
 
 ## The files that matter
 
-**`CLAUDE.md`** is the house rules for any AI working in the vault: which folders it may write to, that it only ever appends, that it needs your OK before editing a note, and how tags and tasks look. The assistant reads it with every message, and so does Claude Code if you ever point it at the vault. The important rules are also hard-coded in `tools.py`, so they hold even if the model gets creative.
+**`CLAUDE.md`** is the house rules for any AI working in the vault: which folders it may write to, where it may create new notes, that it only ever appends to existing ones, that it needs your OK before editing a note, and how tags and tasks look. The assistant reads it with every message, and so does Claude Code if you ever point it at the vault. The important rules are also hard-coded in `tools.py`, so they hold even if the model gets creative.
 
 **`Agent/SOUL.md`** is the assistant's personality and job description: how to talk, which tool to use when, how to learn about you. Put your name in place of `<your name>` on the first line. The rest you can change whenever you like. It's read fresh with every message, so changes show up immediately, also in threads that are already going.
 

@@ -18,7 +18,7 @@ Change the IDs when new models come out. `ESCALATE_TO=sonnet,opus` in `.env` let
 
 ## Folders and the index
 
-Rename and add folders as you like. Update the table in `CLAUDE.md`, and `FOLDER_INFO` / `FOLDER_ORDER` in `tools.py` so `Vault index.md` gets the right descriptions; folders you don't list still show up, just without a description. If you want things to land in particular places, say so in the "Learning about the user" part of `SOUL.md`, e.g. "recipes go in `Home/`".
+Rename and add folders as you like. Update the table in `CLAUDE.md`, and `FOLDER_INFO` / `FOLDER_ORDER` in `tools.py` so `Vault index.md` gets the right descriptions; folders you don't list still show up, just without a description. If you want things to land in particular places, say so in the "Learning about the user" part of `SOUL.md`, e.g. "recipes go in `Home/`". `NO_NEW_NOTES` in `tools.py` lists the top-level folders `create_note` may not add notes to; add any folder that has its own structure you don't want the assistant to mess with.
 
 The channel names are `CHAT_CHANNEL` and `QUICK_CHANNEL` in `.env`.
 
@@ -41,13 +41,13 @@ async def word_count(args):
     return _ok(f"{rel}: {n} words")
 ```
 
-Add it to the `tools = [...]` list at the bottom of `make_vault_server()`, add `"word_count"` to `TOOL_NAMES` at the top (that's what actually allows the model to call it), mention it in `SOUL.md`, and restart. A few habits that kept mine out of trouble: send every path through `find_note()` or `safe_path()`, never let a tool overwrite or delete text, and record writes in `actions` so `main.py` can show you exactly what changed.
+Add it to the `tools = [...]` list at the bottom of `make_vault_server()`, add `"word_count"` to `TOOL_NAMES` at the top (that's what actually allows the model to call it), mention it in `SOUL.md`, and restart. A few habits that kept mine out of trouble: send every path through `find_note()` or `safe_path()`, never let a tool overwrite or delete text (`create_note` opens files with mode `"x"` for that reason), and record writes in `actions` so `main.py` can show you exactly what changed.
 
 ## Using a locally run LLM
 
 Only one layer of this talks to the model, so you can point it at a model on your own hardware, for example with [Ollama](https://ollama.com) or [LM Studio](https://lmstudio.ai), which both offer an OpenAI-compatible API, and keep everything else.
 
-Nothing changes in the Discord side (`main.py`), the vault rules or the tools' actual work: `search_notes()`, `read_note()`, `capture_entry()`, `append_memory()`, `check_edit()` and `apply_edit()` in `tools.py` are ordinary Python functions. The heartbeat's scheduling and health checks, the templates, the snapshots and the services stay as they are.
+Nothing changes in the Discord side (`main.py`), the vault rules or the tools' actual work: `search_notes()`, `read_note()`, `capture_entry()`, `create_note_file()`, `append_memory()`, `check_edit()` and `apply_edit()` in `tools.py` are ordinary Python functions. The heartbeat's scheduling and health checks, the templates, the snapshots and the services stay as they are.
 
 What you'd replace:
 

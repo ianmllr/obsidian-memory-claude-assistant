@@ -181,6 +181,9 @@ async def report_actions(channel, actions: list[dict], key: str) -> None:
     if captured:
         await send_long(channel, f"📥 Saved to `{captured[0]['path']}`:\n"
                         + "\n".join(f"`{a['line']}`" for a in captured))
+    created = [a["path"] for a in actions if a["type"] == "created"]
+    if created:
+        await channel.send("🆕 Created " + ", ".join(f"`{p}`" for p in created))
 
     for a in actions:
         if a["type"] != "proposal":
