@@ -118,10 +118,14 @@ async def ask(
     session_id: str | None = None,
     images: list[tuple[str, bytes]] | None = None,
     escalate_to: list[str] | None = None,
+    links: list[str] | None = None,
+    web_read: bool = False,
 ) -> tuple[str, dict, str | None, list[dict]]:
     """Send one message to Claude, continuing `session_id` if given. `cwd` is the vault.
     `images` is a list of (media type, raw bytes), sent along with the text.
     `escalate_to` lists models it may hand the message to (adds the escalate tool).
+    `links` are URLs the user sent in this conversation (adds read_link; None = no web access).
+    `web_read`: the conversation already read a web page, so writes need the user's approval.
     Returns (reply text, usage info for the log, session id to save, vault actions)."""
     actions: list[dict] = []  # filled by the vault tools: what was saved or proposed
     options = ClaudeAgentOptions(
@@ -131,9 +135,10 @@ async def ask(
         # new memories or edits to SOUL.md.
         system_prompt={"type": "custom", "prompt": system_prompt, "snapshot": False},
         tools=[],            # no built-in tools (no shell, no free file access)...
-        mcp_servers={"vault": make_vault_server(cwd, actions, escalate_to)},
+        mcp_servers={"vault": make_vault_server(cwd, actions, escalate_to, links, web_read)},
         # ...only our vault tools, which enforce the rules in code
-        allowed_tools=TOOL_NAMES + (["mcp__vault__escalate"] if escalate_to else []),
+        allowed_tools=TOOL_NAMES + (["mcp__vault__escalate"] if escalate_to else [])
+        + (["mcp__vault__read_link"] if links is not None else []),
         strict_mcp_config=True,  # only our vault server: not the claude.ai account connectors
         setting_sources=[],  # we load CLAUDE.md ourselves, so skip Claude Code's own settings
         max_turns=MAX_TURNS,

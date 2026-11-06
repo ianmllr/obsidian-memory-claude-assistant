@@ -9,6 +9,7 @@ Channels:
 
 The bot can save facts to Agent/MEMORY.md on its own. Edits to existing notes are
 shown as a diff with Approve/Reject buttons and only applied when the user approves.
+In a conversation that has read a web page, every write waits for approval like that.
 Pending proposals are saved to disk, so the buttons still work after a restart.
 """
 
@@ -24,7 +25,8 @@ from dotenv import load_dotenv
 
 from brain import DEFAULT_MODEL, MODELS, ask, build_system_prompt
 from heartbeat import Heartbeat
-from tools import MEMORY_FILE, VaultError, apply_edit, render_diff
+from tools import MEMORY_FILE, VaultError, apply_proposal, render_diff
+from web import links_in
 
 load_dotenv()
 
@@ -48,6 +50,7 @@ HERE = Path(__file__).parent
 LOG_FILE = HERE / "logs" / "usage.jsonl"
 SESSIONS_FILE = HERE / "state" / "sessions.json"
 PENDING_FILE = HERE / "state" / "pending_edits.json"
+WEB_FILE = HERE / "state" / "web_sessions.json"
 
 # Past this many context tokens, suggest a new thread. Haiku's price jumps 5x
 # above 100K prompt tokens, and long threads get slower and more expensive anyway.
@@ -110,6 +113,14 @@ class SessionStore:
 
 sessions = SessionStore(SESSIONS_FILE)
 pending_edits = SessionStore(PENDING_FILE)
+# Claude sessions that have read a web page: their writes stay held for approval,
+# since the page text is part of the conversation from then on.
+web_sessions = SessionStore(WEB_FILE)
+
+# Links the user posted per conversation, the only ones read_link may open.
+# In memory only: after a restart, paste the link again.
+MAX_LINKS_KEPT = 20
+conversation_links: dict[str, list[str]] = {}
 
 # Approve/Reject outcomes the bot hasn't heard about yet, per conversation.
 # They're passed along with the user's next message in that conversation.
@@ -184,17 +195,33 @@ async def report_actions(channel, actions: list[dict], key: str) -> None:
     created = [a["path"] for a in actions if a["type"] == "created"]
     if created:
         await channel.send("🆕 Created " + ", ".join(f"`{p}`" for p in created))
+    read = [a["url"] for a in actions if a["type"] == "read_link"]
+    if read:
+        await channel.send("🔗 Read " + ", ".join(f"<{u}>" for u in read))
 
     for a in actions:
         if a["type"] != "proposal":
             continue
         edit_id = uuid.uuid4().hex[:12]
         pending_edits.set(edit_id, {**a, "conversation": key, "ts": time.time()})
-        reason = f"\n{a['reason'][:200]}" if a.get("reason") else ""
-        await channel.send(
-            f"✏️ Proposed edit to `{a['path']}`{reason}\n```diff\n{render_diff(a['old'], a['new'])}\n```",
-            view=edit_buttons(edit_id),
-        )
+        await channel.send(describe_proposal(a), view=edit_buttons(edit_id))
+
+
+def describe_proposal(a: dict) -> str:
+    """The Discord text for a proposal, by kind."""
+    kind = a.get("kind", "edit")
+    if kind == "remember":
+        return f"✏️ Save to `{a['path']}`?\n`{a['line']}`"
+    if kind == "capture":
+        return f"✏️ Add to `{a['path']}`?\n`{a['line']}`"
+    if kind == "create":
+        preview = a["content"].replace("```", "'''")
+        if len(preview) > 1500:
+            preview = preview[:1500] + "\n... (truncated)"
+        tags = ", ".join(a.get("tag_list", []))
+        return f"✏️ Create `{a['path']}`? (tags: {tags})\n```md\n{preview}\n```"
+    reason = f"\n{a['reason'][:200]}" if a.get("reason") else ""
+    return f"✏️ Proposed edit to `{a['path']}`{reason}\n```diff\n{render_diff(a['old'], a['new'])}\n```"
 
 
 def thread_title(text: str) -> str:
@@ -292,7 +319,7 @@ async def on_interaction(interaction: discord.Interaction):
     path = edit["path"]
     if choice == "approve":
         try:
-            apply_edit(VAULT, path, edit["old"], edit["new"])
+            apply_proposal(VAULT, edit)
             status, applied = "✅ Approved and saved.", True
             notice = f"The user approved your proposed edit to {path}. It has been saved."
         except VaultError as e:
@@ -333,6 +360,14 @@ async def on_message(message: discord.Message):
     async with lock, reply_channel.typing():
         system_prompt, files_loaded = build_system_prompt(VAULT, DAILY_DIR)
         session_id = sessions.get(key) if mode == "chat" else None
+        # read_link only in conversations, and only for links the user posted there
+        links = None
+        if mode == "chat":
+            kept = conversation_links.setdefault(key, [])
+            kept.extend(u for u in links_in(message.content) if u not in kept)
+            del kept[:-MAX_LINKS_KEPT]
+            links = list(kept)
+        web_read = bool(session_id and web_sessions.get(session_id))
         started = time.time()
         resumed = session_id is not None
 
@@ -351,7 +386,7 @@ async def on_message(message: discord.Message):
 
         try:
             reply, meta, new_session, actions = await ask(
-                prompt, system_prompt, model, VAULT, session_id, images, escalate_to)
+                prompt, system_prompt, model, VAULT, session_id, images, escalate_to, links, web_read)
         except Exception as first_error:
             if not session_id:
                 await reply_channel.send(f"⚠️ {type(first_error).__name__}: {first_error}")
@@ -360,7 +395,7 @@ async def on_message(message: discord.Message):
             # The saved session may be gone (e.g. Claude Code data cleared). Start fresh once.
             try:
                 reply, meta, new_session, actions = await ask(
-                    prompt, system_prompt, model, VAULT, None, images, escalate_to)
+                    prompt, system_prompt, model, VAULT, None, images, escalate_to, links, False)
                 resumed = False
                 await reply_channel.send("ℹ️ Couldn't resume this conversation, so I started a fresh one.")
             except Exception as e:
@@ -381,7 +416,7 @@ async def on_message(message: discord.Message):
                 "files_loaded": files_loaded,
                 "context_tokens": context_tokens_of(meta),
                 "vault_actions": [
-                    {"type": a["type"], "path": a.get("path", MEMORY_FILE)}
+                    {"type": a["type"], "path": a.get("path") or a.get("url") or MEMORY_FILE}
                     for a in actions if a["type"] != "escalate"
                 ],
                 **extra,
@@ -403,7 +438,11 @@ async def on_message(message: discord.Message):
             )
             started = time.time()
             try:
-                reply, meta, new_session, more = await ask(handoff, system_prompt, target, VAULT, new_session)
+                read_page = web_read or any(a["type"] == "read_link" for a in actions)
+                if read_page and new_session:
+                    web_sessions.set(new_session, time.time())
+                reply, meta, new_session, more = await ask(handoff, system_prompt, target, VAULT,
+                                                           new_session, links=links, web_read=read_page)
             except Exception as e:
                 remember_session(new_session)
                 await reply_channel.send(f"⚠️ {target.title()} failed: {type(e).__name__}: {e}")
@@ -415,6 +454,8 @@ async def on_message(message: discord.Message):
             escalated_from, model = model, target
 
         remember_session(new_session)
+        if new_session and any(a["type"] == "read_link" for a in actions):
+            web_sessions.set(new_session, time.time())
         await send_long(reply_channel, reply)
         await report_actions(reply_channel, actions, key)
 

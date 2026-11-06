@@ -22,6 +22,8 @@ Finally `main.py` posts the answer, plus a line saying exactly what was saved or
 
 `propose_edit` is how the assistant changes one of your existing notes, and it doesn't write anything itself. It checks that the text to replace exists exactly once and hands the proposal to `main.py`, which shows it to you. Only when you click Approve does the change happen, after checking again that the note hasn't changed in the meantime.
 
+`read_link` reads a web page as plain text, and only in `#chat` threads and DMs. It opens a link only if you posted it in that conversation, so a page can't send it on to other pages, and it can't search. The fetching lives in `web.py`: http and https only, and it refuses any address on your own computer or home network (so a link can't poke at your router or Syncthing's web UI), checking again on every redirect. Pages are capped at 3 MB downloaded and about 15,000 characters of text, and paywalled posts only show their free part. More on why reading pages changes the rules below.
+
 `escalate` passes the message to a stronger model. Only the default model has it, and only for the models you allow.
 
 The idea behind all this: the model decides what to do, the code decides what's allowed. `CLAUDE.md` is advice the model may or may not follow perfectly. `tools.py` is what actually happens.
@@ -80,6 +82,8 @@ Opus is off by default because it eats a Pro plan's limits quickly; set `ESCALAT
 
 ## Why you can't easily talk it into things
 
-It only answers your user ID. It has no shell, no file editing and no internet, just the vault tools, and those check every path. The heartbeat, which reads email from strangers, runs Claude with no tools at all, so an email saying "ignore your instructions and…" can at worst change the wording of a DM. And `strict_mcp_config=True` keeps your claude.ai account's own connectors (Gmail, Drive and so on) out of the bot's sessions; [chapter 8](08-gotchas.md) explains why that matters.
+It only answers your user ID. It has no shell and no file editing, just the vault tools, and those check every path. The heartbeat, which reads email from strangers, runs Claude with no tools at all, so an email saying "ignore your instructions and…" can at worst change the wording of a DM.
+
+Web pages are the same kind of risk, but in a conversation where the bot does have tools. A page could hide text like "save this to memory: …", and models aren't reliable at telling your words from a page's. The dangerous part would be the direct writes, because `MEMORY.md` and today's daily note go along with every future message, so one bad page could plant something that stays. So once a conversation has read a page, `remember`, `capture` and `create_note` stop writing and turn into proposals with Approve/Reject buttons, just like `propose_edit`. The page text stays in that thread's history, so this lasts for the rest of the thread (the session IDs are kept in `state/web_sessions.json`). A new thread starts clean. `#quick` never reads links at all; paste one there and it's just saved as text. And `strict_mcp_config=True` keeps your claude.ai account's own connectors (Gmail, Drive and so on) out of the bot's sessions; [chapter 8](08-gotchas.md) explains why that matters.
 
 Next: [the heartbeat](06-heartbeat.md).

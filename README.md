@@ -21,6 +21,7 @@ It can also start new notes. Ask it to help plan a birthday party and it writes 
 Other things it does:
 
 - reads images, so you can send it a screenshot or a photo of a spec sheet
+- reads links you paste, like a Substack post you want summarised. It doesn't search the web, and after reading a page everything it wants to save in that conversation waits for your Approve
 - answers with Haiku by default and passes hard questions on to Sonnet by itself (you can also start a message with `/sonnet` or `/opus`)
 - sends you a morning brief at 07:00 and messages you during the day when something matters: an event coming up, a task that's due, an email that needs an answer. Calendar and mail are read-only (iCloud Calendar and Gmail)
 - tells you when the computer itself has a problem, like sync stopping, the disk filling up or a power cut
@@ -36,7 +37,7 @@ flowchart TB
 
     Bot["<b>main.py + brain.py</b><br/>gets your message<br/>adds vault context<br/>posts the reply"]
     Claude["<b>Claude</b><br/>Haiku<br/>Sonnet for hard questions<br/><i>your Pro subscription</i>"]
-    Tools["<b>tools.py</b><br/>search · read · capture<br/>remember · create_note<br/>propose_edit<br/><i>vault rules enforced in code</i>"]
+    Tools["<b>tools.py</b><br/>search · read · capture<br/>remember · create_note<br/>propose_edit · read_link<br/><i>vault rules enforced in code</i>"]
 
     HB["<b>heartbeat.py</b><br/>health checks<br/>07:00 brief · hourly"]
     Ext["Calendar<br/>Gmail"]

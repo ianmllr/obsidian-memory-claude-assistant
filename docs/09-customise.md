@@ -47,7 +47,7 @@ Add it to the `tools = [...]` list at the bottom of `make_vault_server()`, add `
 
 Only one layer of this talks to the model, so you can point it at a model on your own hardware, for example with [Ollama](https://ollama.com) or [LM Studio](https://lmstudio.ai), which both offer an OpenAI-compatible API, and keep everything else.
 
-Nothing changes in the Discord side (`main.py`), the vault rules or the tools' actual work: `search_notes()`, `read_note()`, `capture_entry()`, `create_note_file()`, `append_memory()`, `check_edit()` and `apply_edit()` in `tools.py` are ordinary Python functions. The heartbeat's scheduling and health checks, the templates, the snapshots and the services stay as they are.
+Nothing changes in the Discord side (`main.py`), the vault rules or the tools' actual work: `search_notes()`, `read_note()`, `capture_entry()`, `create_note_file()`, `append_memory()`, `fetch_text()` in `web.py`, `check_edit()` and `apply_edit()` in `tools.py` are ordinary Python functions. The heartbeat's scheduling and health checks, the templates, the snapshots and the services stay as they are.
 
 What you'd replace:
 
@@ -64,6 +64,6 @@ Some things I'd like to add at some point:
 
 - reminders at a time of day, by storing `⏰ 15:00` next to the date and checking it in `Heartbeat.tick()`
 - ticking tasks off from Discord, with a `complete_task` tool that proposes the `- [ ]` → `- [x]` change through the normal approval flow
-- web search. The SDK can do it, but web pages bring the same prompt-injection problem as email, so think it through first
+- web search. `read_link` already handles pages you send it, and the hold-for-approval rule would carry over, but searching means the model picks the pages, so more of what it reads is written by strangers
 - a dead man's switch. The heartbeat can't tell you the computer is off, but a free service like healthchecks.io can email you when the bot stops checking in
 - voice notes: transcribe audio attachments and `capture` them

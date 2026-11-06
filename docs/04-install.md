@@ -63,6 +63,7 @@ These are the things I tested mine with. Each one exercises a different part.
 6. In `#chat`: "my laptop has 32 GB RAM". You should get a proposed change to `Devices.md` with Approve and Reject buttons. Approve it and look at the note.
 7. In `#chat`, attach a screenshot and ask what's in it.
 8. In `#chat`: "help me plan a birthday party, make a note for it with a checklist". You should get `🆕 Created Home/…` and a new note with tags and a checklist.
+9. In a new `#chat` thread, paste a link to an article and ask for a summary. You should get `🔗 Read …` and the summary. Then ask it to note the article down: this time you get Approve/Reject buttons instead of a saved line.
 
 Then restart the bot (`systemctl --user restart agent`) and reply in the first thread again. It should still remember the conversation.
 
